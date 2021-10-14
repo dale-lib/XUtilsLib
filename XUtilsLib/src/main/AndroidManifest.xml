@@ -5,24 +5,7 @@
 
     <application>
 
-        <activity
-            android:name="com.dale.utils.PermissionUtils$PermissionActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize"
-            android:multiprocess="true"
-            android:theme="@style/ActivityTranslucent"
-            android:windowSoftInputMode="stateHidden|stateAlwaysHidden" />
 
-
-        <provider
-            android:name="com.dale.constant.FileProvider4UtilCode"
-            android:authorities="${applicationId}.utilcode.provider"
-            android:exported="false"
-            android:grantUriPermissions="true"
-            android:multiprocess="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/util_code_provider_paths" />
-        </provider>
     </application>
 
     <uses-permission
