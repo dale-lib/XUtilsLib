@@ -1,6 +1,6 @@
 apply plugin: 'com.android.library'
-apply plugin: 'maven-publish'
-apply plugin: 'signing'
+//apply plugin: 'maven-publish'
+//apply plugin: 'signing'
 
 
 ext {
@@ -38,7 +38,7 @@ dependencies {
     implementation 'com.tencent:mmkv:1.2.10'
 }
 
-apply from: '../maven-publish.gradle'
+//apply from: '../maven-publish.gradle'
 
 //publishing {
 //    publications {
@@ -101,3 +101,21 @@ apply from: '../maven-publish.gradle'
 //    sign publishing.publications.maven //签名配置
 //}
 
+
+https://blog.csdn.net/xiaozeiqwe/article/details/117379335?utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7Edefault-2.no_search_link&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7ECTRLIST%7Edefault-2.no_search_link
+
+
+1.注册地址https://issues.sonatype.org
+eamil:441623442@qq.com
+        userName:dale-lib or dale
+pass:Admin@123456
+https://issues.sonatype.org/browse/OSSRH-74042?filter=-2
+查看地址：https://s01.oss.sonatype.org/#stagingRepositories
+
+密钥对创建成功。
+指纹：C0B8CBCFD469D8A789400C3ED60D5A73EF434181
+
+gpg --keyserver pgp.mit.edu --send-keys EF434181
+gpg --keyserver pgp.mit.edu --recv-keys EF434181
+
+gpg -o /c/secring.gpg --export-secret-keys EF434181
