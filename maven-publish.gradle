@@ -1,3 +1,106 @@
+//apply plugin: 'maven-publish'
+//apply plugin: 'signing'
+//
+//task androidSourcesJar(type: Jar) {
+//    classifier = 'sources'
+//    from android.sourceSets.main.java.source
+//
+//    exclude "**/R.class"
+//    exclude "**/BuildConfig.class"
+//}
+//
+//
+//Properties properties = new Properties()
+//properties.load(project.rootProject.file('maven.properties').newDataInputStream())
+////定义properties
+//def GROUP_ID = properties.getProperty('GROUP_ID')
+//def ARTIFACT_ID = properties.getProperty('ARTIFACT_ID')
+//def VERSION_NAME = properties.getProperty('VERSION_NAME')
+//
+//def POM_NAME = properties.getProperty('POM_NAME')
+//def POM_DESCRIPTION = properties.getProperty('POM_DESCRIPTION')
+//def POM_URL = properties.getProperty('POM_URL')
+//
+//def POM_SCM_URL = properties.getProperty('POM_SCM_URL')
+//def POM_SCM_CONNECTION = properties.getProperty('POM_SCM_CONNECTION')
+//def POM_SCM_DEV_CONNECTION = properties.getProperty('POM_SCM_DEV_CONNECTION')
+//
+//def POM_DEVELOPER_ID = properties.getProperty('POM_DEVELOPER_ID')
+//def POM_DEVELOPER_NAME = properties.getProperty('POM_DEVELOPER_NAME')
+//def POM_DEVELOPER_EMAIL = properties.getProperty('POM_DEVELOPER_EMAIL')
+//
+//ext["signing.keyId"] = properties.getProperty('signing.keyId')
+//ext["signing.password"] = properties.getProperty('signing.password')
+//ext["signing.secretKeyRingFile"] = properties.getProperty('signing.secretKeyRingFile')
+//ext["ossrhUsername"] = properties.getProperty('ossrhUsername')
+//ext["ossrhPassword"] = properties.getProperty('ossrhPassword')
+//
+//publishing {
+//    publications {
+//        release(MavenPublication) {
+//            groupId GROUP_ID
+//            artifactId ARTIFACT_ID
+//            version VERSION_NAME
+//            artifact("$buildDir/outputs/aar/${project.getName()}-release.aar")
+//            artifact androidSourcesJar
+//
+//            pom {
+//                name = POM_NAME
+//                description = POM_DESCRIPTION
+//                url = POM_URL
+//                licenses {
+//                    license {
+//                        //协议类型，一般默认Apache License2.0的话不用改：
+//                        name = 'The Apache License, Version 2.0'
+//                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+//                    }
+//                }
+//                developers {
+//                    developer {
+//                        id = POM_DEVELOPER_ID
+//                        name = POM_DEVELOPER_NAME
+//                        email = POM_DEVELOPER_EMAIL
+//                    }
+//                }
+//                // Version control info, if you're using GitHub, follow the format as seen here
+//                scm {
+//                    //修改成你的Git地址：
+//                    connection = POM_SCM_CONNECTION
+//                    developerConnection = POM_SCM_DEV_CONNECTION
+//                    //分支地址：
+//                    url = POM_SCM_URL
+//                }
+//                withXml {
+//                    def dependenciesNode = asNode().appendNode('dependencies')
+//
+//                    project.configurations.implementation.allDependencies.each {
+//                        def dependencyNode = dependenciesNode.appendNode('dependency')
+//                        dependencyNode.appendNode('groupId', it.group)
+//                        dependencyNode.appendNode('artifactId', it.name)
+//                        dependencyNode.appendNode('version', it.version)
+//                    }
+//                }
+//            }
+//        }
+//    }
+//    repositories {
+//        maven {
+//            name = "mavenCentral"
+//            def releasesRepoUrl = "https://s01.oss.sonatype.org/content/repositories/releases/"
+//            def snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+//            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+//            credentials {
+//                username ossrhUsername
+//                password ossrhPassword
+//            }
+//        }
+//    }
+//}
+//signing {
+//    sign publishing.publications
+//}
+//
+
 apply plugin: 'maven-publish'
 apply plugin: 'signing'
 
@@ -9,45 +112,48 @@ task androidSourcesJar(type: Jar) {
     exclude "**/BuildConfig.class"
 }
 
+ext {
+    PUBLISH_GROUP_ID = 'io.github.dale-lib'
+    PUBLISH_ARTIFACT_ID = 'xUtils-lib'
+    PUBLISH_VERSION = '1.0.3'
+}
 
-Properties properties = new Properties()
-properties.load(project.rootProject.file('maven.properties').newDataInputStream())
-//定义properties
-def GROUP_ID = properties.getProperty('GROUP_ID')
-def ARTIFACT_ID = properties.getProperty('ARTIFACT_ID')
-def VERSION_NAME = properties.getProperty('VERSION_NAME')
+ext["signing.keyId"] = ''
+ext["signing.password"] = ''
+ext["signing.secretKeyRingFile"] = ''
+ext["ossrhUsername"] = ''
+ext["ossrhPassword"] = ''
 
-def POM_NAME = properties.getProperty('POM_NAME')
-def POM_DESCRIPTION = properties.getProperty('POM_DESCRIPTION')
-def POM_URL = properties.getProperty('POM_URL')
-
-def POM_SCM_URL = properties.getProperty('POM_SCM_URL')
-def POM_SCM_CONNECTION = properties.getProperty('POM_SCM_CONNECTION')
-def POM_SCM_DEV_CONNECTION = properties.getProperty('POM_SCM_DEV_CONNECTION')
-
-def POM_DEVELOPER_ID = properties.getProperty('POM_DEVELOPER_ID')
-def POM_DEVELOPER_NAME = properties.getProperty('POM_DEVELOPER_NAME')
-def POM_DEVELOPER_EMAIL = properties.getProperty('POM_DEVELOPER_EMAIL')
-
-ext["signing.keyId"] = properties.getProperty('signing.keyId')
-ext["signing.password"] = properties.getProperty('signing.password')
-ext["signing.secretKeyRingFile"] = properties.getProperty('signing.secretKeyRingFile')
-ext["ossrhUsername"] = properties.getProperty('ossrhUsername')
-ext["ossrhPassword"] = properties.getProperty('ossrhPassword')
-
+File secretPropsFile = project.rootProject.file('local.properties')
+if (secretPropsFile.exists()) {
+    println "Found secret props file, loading props"
+    Properties p = new Properties()
+    p.load(new FileInputStream(secretPropsFile))
+    p.each { name, value ->
+        ext[name] = value
+    }
+} else {
+    println "No props file, loading env vars"
+}
 publishing {
     publications {
         release(MavenPublication) {
-            groupId GROUP_ID
-            artifactId ARTIFACT_ID
-            version VERSION_NAME
+            // The coordinates of the library, being set from variables that
+            // we'll set up in a moment
+            groupId PUBLISH_GROUP_ID
+            artifactId PUBLISH_ARTIFACT_ID
+            version PUBLISH_VERSION
+
+            // Two artifacts, the `aar` and the sources
             artifact("$buildDir/outputs/aar/${project.getName()}-release.aar")
             artifact androidSourcesJar
 
+            // Self-explanatory metadata for the most part
             pom {
-                name = POM_NAME
-                description = POM_DESCRIPTION
-                url = POM_URL
+                name = 'X-UtilsLib'
+                description = 'X-UtilsLib'
+                // If your project has a dedicated site, use its URL here
+                url = 'https://github.com/dale-lib/XUtilsLib'
                 licenses {
                     license {
                         //协议类型，一般默认Apache License2.0的话不用改：
@@ -57,19 +163,21 @@ publishing {
                 }
                 developers {
                     developer {
-                        id = POM_DEVELOPER_ID
-                        name = POM_DEVELOPER_NAME
-                        email = POM_DEVELOPER_EMAIL
+                        id = 'dale'
+                        name = 'dale'
+                        email = '441623442@qq.com'
                     }
                 }
                 // Version control info, if you're using GitHub, follow the format as seen here
                 scm {
                     //修改成你的Git地址：
-                    connection = POM_SCM_CONNECTION
-                    developerConnection = POM_SCM_DEV_CONNECTION
+                    connection = 'scm:git@https://github.com/dale-lib/XUtilsLib.git'
+                    developerConnection = 'scm:git@https://github.com/dale-lib/XUtilsLib.git'
                     //分支地址：
-                    url = POM_SCM_URL
+                    url = 'https://github.com/dale-lib/XUtilsLib'
                 }
+                // A slightly hacky fix so that your POM will include any transitive dependencies
+                // that your library builds upon
                 withXml {
                     def dependenciesNode = asNode().appendNode('dependencies')
 
@@ -84,11 +192,19 @@ publishing {
         }
     }
     repositories {
+        // The repository to publish to, Sonatype/MavenCentral
         maven {
+            // This is an arbitrary name, you may also use "mavencentral" or
+            // any other name that's descriptive for you
             name = "mavenCentral"
+
             def releasesRepoUrl = "https://s01.oss.sonatype.org/content/repositories/releases/"
             def snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+            // You only need this if you want to publish snapshots, otherwise just set the URL
+            // to the release repo directly
             url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+
+            // The username and password we've fetched earlier
             credentials {
                 username ossrhUsername
                 password ossrhPassword
@@ -99,4 +215,3 @@ publishing {
 signing {
     sign publishing.publications
 }
-
