@@ -1,110 +1,102 @@
-if (project.hasProperty("android")) { // Android libraries
-    task sourcesJar(type: Jar) {
-        classifier = 'sources'
-        from android.sourceSets.main.java.srcDirs
-    }
-
-    task javadoc(type: Javadoc) {
-        // https://github.com/novoda/bintray-release/issues/71
-        excludes = ['**/*.kt'] // < ---- Exclude all kotlin files from javadoc file.
-        source = android.sourceSets.main.java.srcDirs
-        classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-        options.encoding = "utf-8"
-        options.charSet = "utf-8"
-    }
-} else { // Java libraries
-    task sourcesJar(type: Jar, dependsOn: classes) {
-        classifier = 'sources'
-        from sourceSets.main.allSource
-    }
-}
-
-// 强制 Java/JavaDoc 等的编码为 UTF-8
-tasks.withType(JavaCompile) {
-    options.encoding = "UTF-8"
-}
-
-tasks.withType(Javadoc) {
-    options.encoding = "UTF-8"
-}
-
-task javadocJar(type: Jar, dependsOn: javadoc) {
-    classifier = 'javadoc'
-    from javadoc.destinationDir
-}
-
-// add javadoc/source jar tasks as artifacts
-artifacts {
-    archives javadocJar
-    archives sourcesJar
-}
-
-apply plugin: 'maven'
+apply plugin: 'maven-publish'
 apply plugin: 'signing'
+
+task androidSourcesJar(type: Jar) {
+    classifier = 'sources'
+    from android.sourceSets.main.java.source
+
+    exclude "**/R.class"
+    exclude "**/BuildConfig.class"
+}
 
 
 Properties properties = new Properties()
-properties.load(project.rootProject.file('local.properties').newDataInputStream())
+properties.load(project.rootProject.file('maven.properties').newDataInputStream())
+//定义properties
+def GROUP_ID = properties.getProperty('GROUP_ID')
+def ARTIFACT_ID = properties.getProperty('ARTIFACT_ID')
+def VERSION_NAME = properties.getProperty('VERSION_NAME')
 
-def ossrhUsername = properties.getProperty("ossrhUsername")
-def ossrhPassword = properties.getProperty("ossrhPassword")
-def PUBLISH_GROUP_ID = properties.getProperty("group_id")
-def PUBLISH_ARTIFACT_ID = properties.getProperty("artifact")
-def PUBLISH_VERSION = properties.getProperty("publish_version")
+def POM_NAME = properties.getProperty('POM_NAME')
+def POM_DESCRIPTION = properties.getProperty('POM_DESCRIPTION')
+def POM_URL = properties.getProperty('POM_URL')
 
-//签名
-signing {
-    required { gradle.taskGraph.hasTask("uploadArchives") }
-    sign configurations.archives
-}
+def POM_SCM_URL = properties.getProperty('POM_SCM_URL')
+def POM_SCM_CONNECTION = properties.getProperty('POM_SCM_CONNECTION')
+def POM_SCM_DEV_CONNECTION = properties.getProperty('POM_SCM_DEV_CONNECTION')
 
-uploadArchives {
-    repositories {
-        mavenDeployer {
+def POM_DEVELOPER_ID = properties.getProperty('POM_DEVELOPER_ID')
+def POM_DEVELOPER_NAME = properties.getProperty('POM_DEVELOPER_NAME')
+def POM_DEVELOPER_EMAIL = properties.getProperty('POM_DEVELOPER_EMAIL')
 
-            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+ext["signing.keyId"] = properties.getProperty('signing.keyId')
+ext["signing.password"] = properties.getProperty('signing.password')
+ext["signing.secretKeyRingFile"] = properties.getProperty('signing.secretKeyRingFile')
+ext["ossrhUsername"] = properties.getProperty('ossrhUsername')
+ext["ossrhPassword"] = properties.getProperty('ossrhPassword')
 
-            repository(url: "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                authentication(userName: ossrhUsername, password: ossrhPassword)
-            }
+publishing {
+    publications {
+        release(MavenPublication) {
+            groupId GROUP_ID
+            artifactId ARTIFACT_ID
+            version VERSION_NAME
+            artifact("$buildDir/outputs/aar/${project.getName()}-release.aar")
+            artifact androidSourcesJar
 
-            snapshotRepository(url: "https://s01.oss.sonatype.org/content/repositories/snapshots/") {
-                authentication(userName: ossrhUsername, password: ossrhPassword)
-            }
-
-            pom.groupId = PUBLISH_GROUP_ID
-            pom.artifactId = PUBLISH_ARTIFACT_ID
-            pom.version = PUBLISH_VERSION
-
-            pom.project {
-                packaging 'aar' //我这里发布的是安卓的包，所有写的aar
-
-                name libraryName // '发布库的简单名称'
-                // optionally artifactId can be defined here
-                description libraryDescription // '发布包的描述'
-                url siteUrl // '可以写公司官网地址或github个人页面地址'
-
-                scm {
-                    connection gitUrl // 'scm:替换成项目git地址'
-                    developerConnection gitUrl // 'scm:替换为git开头的项目地址'
-                    url siteUrl // '项目首页，可以是github项目的主页'
-                }
-
+            pom {
+                name = POM_NAME
+                description = POM_DESCRIPTION
+                url = POM_URL
                 licenses {
                     license {
-                        name licenseName // 'The Apache License, Version 2.0'
-                        url licenseUrl // 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        //协议类型，一般默认Apache License2.0的话不用改：
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
                     }
                 }
-
                 developers {
                     developer {
-                        id 'dale' // '这里填写申请账号时候的全名就可以'
-                        name 'dale' // '这里随意填写就可以'
-                        email '441623442@qq.com'// '最好是申请账号时用的邮箱'
+                        id = POM_DEVELOPER_ID
+                        name = POM_DEVELOPER_NAME
+                        email = POM_DEVELOPER_EMAIL
+                    }
+                }
+                // Version control info, if you're using GitHub, follow the format as seen here
+                scm {
+                    //修改成你的Git地址：
+                    connection = POM_SCM_CONNECTION
+                    developerConnection = POM_SCM_DEV_CONNECTION
+                    //分支地址：
+                    url = POM_SCM_URL
+                }
+                withXml {
+                    def dependenciesNode = asNode().appendNode('dependencies')
+
+                    project.configurations.implementation.allDependencies.each {
+                        def dependencyNode = dependenciesNode.appendNode('dependency')
+                        dependencyNode.appendNode('groupId', it.group)
+                        dependencyNode.appendNode('artifactId', it.name)
+                        dependencyNode.appendNode('version', it.version)
                     }
                 }
             }
         }
     }
+    repositories {
+        maven {
+            name = "mavenCentral"
+            def releasesRepoUrl = "https://s01.oss.sonatype.org/content/repositories/releases/"
+            def snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+            credentials {
+                username ossrhUsername
+                password ossrhPassword
+            }
+        }
+    }
 }
+signing {
+    sign publishing.publications
+}
+

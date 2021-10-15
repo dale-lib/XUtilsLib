@@ -39,7 +39,8 @@ dependencies {
 
     implementation 'com.google.code.gson:gson:2.8.6'
     implementation 'com.tencent:mmkv:1.2.10'
-    implementation 'io.github.dale-lib:XUtilsLib:1.0.0'
+    implementation project(path: ':XUtilsLib')
+//    implementation 'io.github.dale-lib:XUtilsLib:1.0.0'
 //    implementation 'com.gitee.dale-lib:xutils:1.0.0'
 
 }
